@@ -64,7 +64,7 @@ def search_by_author(author):
 	conn.commit()
  
 @app.command("most_read_genres")
-def smost_read_genres():
+def most_read_genres():
 	cur = conn.cursor()
 	postgres_select_query = f""" SELECT  ROW_NUMBER () OVER (ORDER BY COUNT(b.genre) DESC) as "#", b.genre AS "GENRE", COUNT(b.genre) AS "COUNT" FROM user_action u JOIN books b 
                             ON b.book_id = u.book_id GROUP BY  b.genre 
@@ -73,8 +73,7 @@ def smost_read_genres():
 	display_table(cur)
 	cur.close()
 	conn.commit()
- 
- 
+
 @app.command("fav_book")
 def fav_book(book_id,username):
 	cur = conn.cursor()
