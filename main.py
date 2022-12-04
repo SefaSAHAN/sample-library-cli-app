@@ -51,7 +51,6 @@ def sign_up(username: str):
 	cur.execute(postgres_insert_query)
 	cur.close()
 	conn.commit()
-
  
 @app.command("search_by_author")
 def search_by_author(author):
@@ -73,7 +72,6 @@ def fav_book(book_id,username):
 	conn.commit()
 	typer.echo(f"{username} added book {book_id} to your favorites! '.")
  
-
 @app.command("mark_read")
 def mark_read(book_id,username):
 	cur = conn.cursor()
@@ -124,13 +122,10 @@ def my_books(username):
 	cur.execute(postgres_select_query)
 	display_table(cur)
 	cur.close()
-	conn.commit()
-	
-	
+	conn.commit()	
  
 # Example function for tables, you can add more columns/row.
 @app.command("display_table")
-
 def display_table(cursor):	
 	table = Table(show_header=True, header_style="bold blue")
 	column_names=[desc[0] for desc in cursor.description]
