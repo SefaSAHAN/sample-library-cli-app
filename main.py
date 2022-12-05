@@ -134,6 +134,91 @@ def my_books(username):
 	display_table(cur)
 	cur.close()
 	conn.commit()	
+
+@app.command("add_book")
+def add_book():
+	typer.echo(f"Please provide book detail!")
+	cur = conn.cursor()
+	title = input ("Title: ")
+	author = input ("Author: ")
+	pages = input ("No. of pages: ")
+	genre = input ("Genre: ")
+	quantity= int(input ("Quantity: "))
+	postgres_select_query = f"""select quantity from books where title = '{title}' and author = '{author}' """
+	cur.execute(postgres_select_query)
+	q1 = cur.fetchone()
+	if q1 is not None:
+		q2 = q1[0]
+		updated_quantity = q2+ quantity
+		postgres_update_query = f"""update books set quantity = '{updated_quantity}'  where title = '{title}' and author = '{author}' """
+		cur.execute(postgres_update_query)
+		typer.echo(f"Successfully updated book's quantity!")
+	
+	else:
+		postgres_insert_query = f""" INSERT INTO books (title,author,genre,pages,quantity) VALUES ('{title}','{author}','{genre}','{pages}','{quantity}')"""
+		cur.execute(postgres_insert_query)
+		typer.echo(f"Successfully added book!")
+	
+	cur.close()
+	conn.commit()
+
+@app.command("recently_added")
+def recently_added(genre: Optional[str]= typer.Argument(None)):
+	cur = conn.cursor()
+	if genre is None:
+		postgres_select_query = f"""select * from books  order by added_date desc limit 5;"""
+		cur.execute(postgres_select_query)
+    
+	
+	else:
+		postgres_select_query = f"""select * from books where genre =  '{genre}'  order by added_date desc limit 5;"""
+		cur.execute(postgres_select_query)
+	display_table(cur)
+	cur.close()
+	conn.commit()
+
+@app.command("most_favorite_books")
+def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
+	cur = conn.cursor()
+	if genre is None:
+		postgres_select_query = f"""select ac.book_id, b.title, b.author, b.genre, count(fav) from user_action ac, books b where ac.book_id  = b.book_id and fav = 'true'  group by ac.book_id , b.title, b.author, b.genre order by count(fav) desc limit 10;"""
+		cur.execute(postgres_select_query)
+	else:
+		postgres_select_query = f"""select ac.book_id, b.title, b.author, b.genre, count(fav) from user_action ac, books b where ac.book_id  = b.book_id and fav = 'true' and genre =  '{genre}' group by ac.book_id , b.title, b.author, b.genre order by count(fav) desc limit 10;"""
+		cur.execute(postgres_select_query)
+	display_table(cur)
+	cur.close()
+	conn.commit()
+	
+@app.command("mark_reading")
+def mark_reading(book_id: int, user_name: str):
+	cur = conn.cursor()	
+	postgres_select_query = f"""select book_id , user_name from user_action where book_id = '{book_id}' and user_name = '{user_name}' """
+	cur.execute(postgres_select_query)
+	q1 = cur.fetchone()
+	if q1 is not None:
+		postgres_update_query = f"""update user_action set reading = 'true' where book_id = '{book_id}' and user_name = '{user_name}' """
+		cur.execute(postgres_update_query)
+		typer.echo(f"You marked book {book_id} as reading!")		
+	else:
+		typer.echo(f"Check user_name or book_id as this combination doesn't exist!")	
+	cur.close()
+	conn.commit()
+
+@app.command("statistics")
+def statistics(user_name: str):
+	cur = conn.cursor()	
+	postgres_select_query = f"""select count(read), count(distinct (b.author)), count(distinct(b.genre)), sum(b.pages)from user_action ac, books b where ac.book_id = b.book_id and read = 'true' and ac.user_name = '{user_name}'; """
+	cur.execute(postgres_select_query)
+	q=(cur.fetchall())
+	table = Table(show_header=True, header_style="bold blue")
+	table.add_column("Statistic", style="dim", width=30)
+	table.add_column("Number", style="dim", min_width=10, justify=True)	
+	table.add_row('Books you read', str(q[0][0]))
+	table.add_row('Authors you read', str(q[0][1]))
+	table.add_row('Genres you read', str(q[0][2]))
+	table.add_row('Total pages you read', str(q[0][3]))
+	console.print(table)
  
 # Example function for tables, you can add more columns/row.
 @app.command("display_table")
