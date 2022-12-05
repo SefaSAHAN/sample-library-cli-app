@@ -110,6 +110,31 @@ def borrow_book(book_id, username):
     conn.commit()
 
 
+@app.command("mark_will_read")
+def mark_will_read(book_id, username):
+    cur = conn.cursor()
+    postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}' 
+ 							and book_id = {book_id}"""
+    cur.execute(postgres_select_query)
+    actionid = cur.fetchone()
+
+    if actionid == None:
+        postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,will_read) VALUES 
+  								('{username}','{book_id}',true)"""
+        cur.execute(postgres_insert_query)
+        
+        
+    else:
+        postgres_update_query = f""" UPDATE user_action SET will_read = true, read = false, reading = false
+						        WHERE user_name = '{username}' and book_id = {book_id}"""
+        cur.execute(postgres_update_query)
+        
+    cur.close()
+    conn.commit()
+    typer.echo(f"{username} marked book {book_id} as will read.")
+
+
+
 @app.command("fav_book")
 def fav_book(book_id,username):
 	cur = conn.cursor()
