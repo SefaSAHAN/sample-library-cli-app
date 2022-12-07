@@ -52,7 +52,17 @@ def sign_up(username: str):
 	cur.close()
 	conn.commit()
 
- 
+@app.command("search_by_name")
+def search_by_author(name):
+	cur = conn.cursor()
+	postgres_select_query = f"""select ROW_NUMBER () OVER (ORDER BY book_id) as "#",
+ 							book_id as "Book ID", title as "Name", author as "Author", pages as "# Pages",
+							genre as "Genre",  quantity > 0 as "Availability" from books where  title LIKE '{name}%' """
+	cur.execute(postgres_select_query)
+	display_table(cur)
+	cur.close()
+	conn.commit() 
+
 @app.command("search_by_author")
 def search_by_author(author):
 	cur = conn.cursor()
