@@ -63,6 +63,27 @@ def search_by_author(name):
 	cur.close()
 	conn.commit() 
 
+
+@app.command("most_read_books")
+def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
+	cur = conn.cursor()
+	if genre is None:
+		postgres_select_query = f"""select row_number() over(order by count(read) desc) as "#",ac.book_id as "Book ID", b.title as "Name", b.author as "Author"
+								, b.genre  as "Genre", count(read) as "Count"
+								from user_action ac, books b where ac.book_id  = b.book_id and read = 'true'  group by ac.book_id , b.title, b.author, b.genre order by count(read) desc limit 10;"""
+		cur.execute(postgres_select_query)
+
+	else:
+		postgres_select_query = f"""select row_number() over(order by count(read) desc) as "#",ac.book_id as "Book ID", b.title as "Name"
+								, b.author as "Author", b.genre  as "Genre", count(read) as "Count" from user_action ac, books b 
+								where ac.book_id  = b.book_id and read = 'true' and genre =  '{genre}' 
+								group by ac.book_id , b.title, b.author, b.genre order by count(read) desc limit 10;"""
+		cur.execute(postgres_select_query)
+
+	display_table(cur)
+	cur.close()
+	conn.commit()
+	
 @app.command("search_by_author")
 def search_by_author(author):
 	cur = conn.cursor()
