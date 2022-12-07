@@ -74,6 +74,72 @@ def search_by_author(author):
 	cur.close()
 	conn.commit()
  
+@app.command("most_read_genres")
+def most_read_genres():
+	cur = conn.cursor()
+	postgres_select_query = f""" SELECT  ROW_NUMBER () OVER (ORDER BY COUNT(b.genre) DESC) as "#", b.genre AS "GENRE", COUNT(b.genre) AS "COUNT" FROM user_action u JOIN books b 
+                            ON b.book_id = u.book_id GROUP BY  b.genre 
+                            ORDER BY COUNT(b.genre) DESC LIMIT 5 """
+	cur.execute(postgres_select_query)
+	display_table(cur)
+	cur.close()
+	conn.commit()
+
+@app.command("borrow_book")
+def borrow_book(book_id, username):
+    cur = conn.cursor()
+    postgres_select_query = f"""select quantity from books where  book_id = '{book_id}' """
+    cur.execute(postgres_select_query)
+    quantity = cur.fetchone()
+    
+    if quantity[0] > 0:
+        postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}'
+                                  and book_id = {book_id}"""
+        cur.execute(postgres_select_query)
+        actionid = cur.fetchone()
+        
+        if actionid == None:
+            postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,borrow) VALUES 
+                                  ('{username}','{book_id}',true)"""
+            cur.execute(postgres_insert_query)
+            
+        else:  
+            postgres_update_query = f""" UPDATE user_action SET borrow = true
+                                WHERE user_name = '{username}' and book_id = {book_id}"""
+            cur.execute(postgres_update_query)
+        
+        postgres_update_query = f""" UPDATE books SET quantity = quantity - 1
+                                WHERE book_id = {book_id}"""
+        cur.execute(postgres_update_query)
+
+        typer.echo(f"{username} borrowed book {book_id}!")
+
+    else:
+        typer.echo(f"Sorry book {book_id} is not available! Try again later.")
+
+    cur.close()
+    conn.commit()
+
+@app.command("mark_will_read")
+def mark_will_read(book_id, username):
+    cur = conn.cursor()
+    postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}' 
+                             and book_id = {book_id}"""
+    cur.execute(postgres_select_query)
+    actionid = cur.fetchone()
+
+    if actionid == None:
+        postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,will_read) VALUES 
+                                  ('{username}','{book_id}',true)"""
+        cur.execute(postgres_insert_query)
+    else:
+        postgres_update_query = f""" UPDATE user_action SET will_read = true, read = false, reading = false
+                                WHERE user_name = '{username}' and book_id = {book_id}"""
+        cur.execute(postgres_update_query)
+        
+    cur.close()
+    conn.commit()
+    typer.echo(f"{username} marked book {book_id} as will read.")
 
 @app.command("fav_book")
 def fav_book(book_id: int, user_name: str):
