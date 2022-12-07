@@ -229,8 +229,6 @@ def recently_added(genre: Optional[str]= typer.Argument(None)):
 	if genre is None:
 		postgres_select_query = f"""select * from books  order by added_date desc limit 5;"""
 		cur.execute(postgres_select_query)
-    
-	
 	else:
 		postgres_select_query = f"""select * from books where genre =  '{genre}'  order by added_date desc limit 5;"""
 		cur.execute(postgres_select_query)
