@@ -164,14 +164,14 @@ def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
  
 @app.command("most_read_genres")
 def most_read_genres():
-	cur = conn.cursor()
-	postgres_select_query = f""" SELECT  ROW_NUMBER () OVER (ORDER BY COUNT(b.genre) DESC) as "#", b.genre AS "GENRE", COUNT(b.genre) AS "COUNT" FROM user_action u JOIN books b 
-							ON b.book_id = u.book_id GROUP BY  b.genre 
+    cur = conn.cursor()
+    postgres_select_query = f""" SELECT  ROW_NUMBER () OVER (ORDER BY COUNT(b.genre) DESC) as "#", b.genre AS "GENRE", COUNT(b.genre) AS "COUNT" FROM user_action u JOIN books b 
+							ON b.book_id = u.book_id and u.read = True GROUP BY  b.genre 
 							ORDER BY COUNT(b.genre) DESC LIMIT 5 """
-	cur.execute(postgres_select_query)
-	display_table(cur)
-	cur.close()
-	conn.commit()
+    cur.execute(postgres_select_query)
+    display_table(cur)
+    cur.close()
+    conn.commit()
 
 @app.command("most_read_authors")
 def most_read_authors():
@@ -186,31 +186,51 @@ def most_read_authors():
 
 @app.command("borrow_book")
 def borrow_book(book_id, username):
-	cur = conn.cursor()
-	postgres_select_query = f"""select quantity from books where  book_id = '{book_id}' """
-	cur.execute(postgres_select_query)
-	quantity = cur.fetchone()	
-	if quantity[0] > 0:
-		postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}'
-								  and book_id = {book_id}"""
-		cur.execute(postgres_select_query)
-		actionid = cur.fetchone()		
-		if actionid == None:
-			postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,borrow) VALUES 
-								  ('{username}','{book_id}',true)"""
-			cur.execute(postgres_insert_query)			
-		else:  
-			postgres_update_query = f""" UPDATE user_action SET borrow = true
-								WHERE user_name = '{username}' and book_id = {book_id}"""
-			cur.execute(postgres_update_query)		
-		postgres_update_query = f""" UPDATE books SET quantity = quantity - 1
-								WHERE book_id = {book_id}"""
-		cur.execute(postgres_update_query)
-		typer.echo(f"{username} borrowed book {book_id}!")
-	else:
-		typer.echo(f"Sorry book {book_id} is not available! Try again later.")
-	cur.close()
-	conn.commit()
+    cur = conn.cursor()
+
+    postgres_select_query = f"""select u.user_name, b.book_id from users u , books b  where b.book_id = '{book_id}' and u.user_name = '{username}' """
+    cur.execute(postgres_select_query)
+    q1 = cur.fetchone()
+    if q1 is None:
+        typer.echo(f"Sorry, user name or book id is incorrect!")
+        cur.close()
+        conn.commit()
+        return
+
+    else:
+        postgres_select_query = f"""select quantity from books where  book_id = '{book_id}' """
+        cur.execute(postgres_select_query)
+        quantity = cur.fetchone()
+
+        if quantity[0] > 0:
+            postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}'
+                                  and book_id = {book_id}"""
+            cur.execute(postgres_select_query)
+            actionid = cur.fetchone()
+
+            if actionid == None:
+                postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,borrow) VALUES 
+                                  ('{username}','{book_id}',true)"""
+                cur.execute(postgres_insert_query)
+            else:
+                postgres_update_query = f""" UPDATE user_action SET borrow = true
+                                WHERE user_name = '{username}' and book_id = {book_id}"""
+                cur.execute(postgres_update_query)
+
+                postgres_update_query = f""" UPDATE books SET quantity = quantity - 1
+                                WHERE book_id = {book_id}"""
+                cur.execute(postgres_update_query)
+
+                typer.echo(f"{username} borrowed book {book_id}!")
+
+        else:
+            typer.echo(
+                f"Sorry book {book_id} is not available! Try again later.")
+
+    cur.close()
+    conn.commit()
+
+
  
 @app.command("return_book")
 def return_book(book_id,user_name):
