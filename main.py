@@ -261,8 +261,8 @@ def mark_read(book_id: int, user_name: str):
 		cur.execute(postgres_select_query)	
 		q2 = cur.fetchone()
 		if q2 is not None:
-			postgres_update_query = f"""update user_action set read = 'true' where book_id = '{book_id}' and user_name = '{user_name}' """
-			cur.execute(postgres_update_query)
+			postgres_insert_query = f"""INSERT INTO user_action (user_name,book_id,read) VALUES ('{user_name}','{book_id}',true) """
+			cur.execute(postgres_insert_query)
 			typer.echo(f"You marked book {book_id} as read!")
 		else:
 			typer.echo(f"Sorry, book id is incorrect!")			
