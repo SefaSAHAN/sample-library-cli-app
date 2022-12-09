@@ -45,13 +45,13 @@ def start():
 @app.command("sign_up")
 def sign_up(username: str):
 	try:
-		typer.echo(f"Nice that you are signing up!")
-		# TODO: Add user with name {username} to database table
+		
 		cur = conn.cursor()
 		postgres_insert_query = f""" INSERT INTO users (user_name) VALUES ('{username}')"""
 		cur.execute(postgres_insert_query)
 		cur.close()
 		conn.commit()
+		typer.echo(f"Nice that you are signing up!")
 	except (Exception, psycopg2.DatabaseError):
 		print ('Check your username please')
 	finally:
@@ -67,19 +67,15 @@ def add_book():
 	pages = input ("No. of pages: ")
 	genre = input ("Genre: ")
 	quantity= int(input ("Quantity: "))
-
 	postgres_select_query = f"""select quantity from books where title = '{title}' and author = '{author}' """
-
 	cur.execute(postgres_select_query)
-
 	q1 = cur.fetchone()
 	if q1 is not None:
 		q2 = q1[0]
 		updated_quantity = q2+ quantity
 		postgres_update_query = f"""update books set quantity = '{updated_quantity}'  where title = '{title}' and author = '{author}' """
 		cur.execute(postgres_update_query)
-		typer.echo(f"Successfully updated book's quantity!")
-	
+		typer.echo(f"Successfully updated book's quantity!")	
 	else:
 		postgres_insert_query = f""" INSERT INTO books (title,author,genre,pages,quantity) VALUES ('{title}','{author}','{genre}','{pages}','{quantity}')"""
 		cur.execute(postgres_insert_query)
@@ -89,7 +85,7 @@ def add_book():
 	conn.commit()
 
 @app.command("search_by_name")
-def search_by_author(name):
+def search_by_name(name):
 	cur = conn.cursor()
 	postgres_select_query = f"""select ROW_NUMBER () OVER (ORDER BY book_id) as "#",
 							book_id as "Book ID", title as "Name", author as "Author", pages as "# Pages",
@@ -120,8 +116,6 @@ select ROW_NUMBER () OVER (order by added_date desc) as "#", book_id as "Book ID
 													when quantity = 0 then 'False' end "Availability"
 													from books order by added_date desc limit 5;"""
 		cur.execute(postgres_select_query)
-
-
 	else:
 		postgres_select_query = f"""select ROW_NUMBER () OVER (order by added_date desc) as "#", book_id as "Book ID", title as "Name", author as "Author", pages as "# Pages",
 							genre as "Genre", case when quantity> 0 then 'True'
@@ -140,14 +134,12 @@ def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
 								, b.genre  as "Genre", count(read) as "Count"
 								from user_action ac, books b where ac.book_id  = b.book_id and read = 'true'  group by ac.book_id , b.title, b.author, b.genre order by count(read) desc limit 10;"""
 		cur.execute(postgres_select_query)
-
 	else:
 		postgres_select_query = f"""select row_number() over(order by count(read) desc) as "#",ac.book_id as "Book ID", b.title as "Name"
 								, b.author as "Author", b.genre  as "Genre", count(read) as "Count" from user_action ac, books b 
 								where ac.book_id  = b.book_id and read = 'true' and genre =  '{genre}' 
 								group by ac.book_id , b.title, b.author, b.genre order by count(read) desc limit 10;"""
 		cur.execute(postgres_select_query)
-
 	display_table(cur)
 	cur.close()
 	conn.commit()
@@ -160,7 +152,6 @@ def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
 								, b.genre  as "Genre", count(fav) as "Count"
 								from user_action ac, books b where ac.book_id  = b.book_id and fav = 'true'  group by ac.book_id , b.title, b.author, b.genre order by count(fav) desc limit 10;"""
 		cur.execute(postgres_select_query)
-
 	else:
 		postgres_select_query = f"""select row_number() over(order by count(fav) desc) as "#",ac.book_id as "Book ID", b.title as "Name"
 								, b.author as "Author", b.genre  as "Genre", count(fav) as "Count"from user_action ac, books b 
@@ -185,12 +176,10 @@ def most_read_genres():
 @app.command("most_read_authors")
 def most_read_authors():
 	cur = conn.cursor()
-
 	postgres_select_query = f"""select row_number() over(order by count(read) desc) as "#", b.author as "Author", count(read) as "Count"
 							from user_action ac, books b where ac.book_id  = b.book_id and read = 'true'  
 							group by  b.author order by count(read) desc limit 3;"""
 	cur.execute(postgres_select_query)
-
 	display_table(cur)
 	cur.close()
 	conn.commit()
@@ -200,33 +189,26 @@ def borrow_book(book_id, username):
 	cur = conn.cursor()
 	postgres_select_query = f"""select quantity from books where  book_id = '{book_id}' """
 	cur.execute(postgres_select_query)
-	quantity = cur.fetchone()
-	
+	quantity = cur.fetchone()	
 	if quantity[0] > 0:
 		postgres_select_query = f"""select action_id from user_action WHERE user_name = '{username}'
 								  and book_id = {book_id}"""
 		cur.execute(postgres_select_query)
-		actionid = cur.fetchone()
-		
+		actionid = cur.fetchone()		
 		if actionid == None:
 			postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,borrow) VALUES 
 								  ('{username}','{book_id}',true)"""
-			cur.execute(postgres_insert_query)
-			
+			cur.execute(postgres_insert_query)			
 		else:  
 			postgres_update_query = f""" UPDATE user_action SET borrow = true
 								WHERE user_name = '{username}' and book_id = {book_id}"""
-			cur.execute(postgres_update_query)
-		
+			cur.execute(postgres_update_query)		
 		postgres_update_query = f""" UPDATE books SET quantity = quantity - 1
 								WHERE book_id = {book_id}"""
 		cur.execute(postgres_update_query)
-
 		typer.echo(f"{username} borrowed book {book_id}!")
-
 	else:
 		typer.echo(f"Sorry book {book_id} is not available! Try again later.")
-
 	cur.close()
 	conn.commit()
  
@@ -237,8 +219,11 @@ def return_book(book_id,user_name):
 	cur.execute(postgres_select_query)
 	q1 = cur.fetchone()
 	if q1 is not None:
-		postgres_update_query = f"""update user_action set borrow = null where book_id = '{book_id}' and user_name = '{user_name}' and borrow=true """
+		q2=q1[0]+1
+		postgres_update_query=f"""update books set quantity={q2} where book_id={book_id}"""
 		cur.execute(postgres_update_query)
+		postgres_update_query2 = f"""update user_action set borrow = null where book_id = '{book_id}' and user_name = '{user_name}' and borrow=true """
+		cur.execute(postgres_update_query2)
 		typer.echo(f"You returned book {book_id}")
 	else:
 		typer.echo(f"Sorry, you didn't borrow book {book_id}")
