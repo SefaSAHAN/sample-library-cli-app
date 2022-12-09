@@ -127,7 +127,7 @@ select ROW_NUMBER () OVER (order by added_date desc) as "#", book_id as "Book ID
 	conn.commit()
 
 @app.command("most_read_books")
-def most_favorite_books(genre: Optional[str]= typer.Argument(None)):
+def most_read_books(genre: Optional[str]= typer.Argument(None)):
 	cur = conn.cursor()
 	if genre is None:
 		postgres_select_query = f"""select row_number() over(order by count(read) desc) as "#",ac.book_id as "Book ID", b.title as "Name", b.author as "Author"
@@ -233,23 +233,21 @@ def return_book(book_id,user_name):
 @app.command("mark_read")
 def mark_read(book_id: int, user_name: str):
 	cur = conn.cursor()	
-	postgres_select_query = f"""select book_id , user_name from user_action where book_id = '{book_id}' and user_name = '{user_name}' """
+	postgres_select_query = f"""select user_name from users where user_name = '{user_name}' """
 	cur.execute(postgres_select_query)
 	q1 = cur.fetchone()
 	if q1 is not None:
-		postgres_update_query = f"""update user_action set read = 'true' where book_id = '{book_id}' and user_name = '{user_name}' """
-		cur.execute(postgres_update_query)
-		typer.echo(f"You marked book {book_id} as read!")		
-	else:
-		postgres_select_query = f"""select u.user_name, b.book_id from users u , books b  where b.book_id = '{book_id}' and u.user_name = '{user_name}' """
-		cur.execute(postgres_select_query)
-		q1 = cur.fetchone()
-		if q1 is not None:
-			postgres_insert_query = f""" INSERT INTO user_action (user_name,book_id,read) VALUES ('{user_name}','{book_id}',true)"""
-			cur.execute(postgres_insert_query)
-			typer.echo(f"You marked book {book_id} as reading!")
+		postgres_select_query = f"""select book_id from books where book_id = '{book_id}' """
+		cur.execute(postgres_select_query)	
+		q2 = cur.fetchone()
+		if q2 is not None:
+			postgres_update_query = f"""update user_action set read = 'true' where book_id = '{book_id}' and user_name = '{user_name}' """
+			cur.execute(postgres_update_query)
+			typer.echo(f"You marked book {book_id} as read!")
 		else:
-			typer.echo(f"Sorry, user name or book id is incorrect!")	
+			typer.echo(f"Sorry, book id is incorrect!")			
+	else:
+		typer.echo(f"Sorry, user name is incorrect!")	
 	cur.close()
 	conn.commit()
 
