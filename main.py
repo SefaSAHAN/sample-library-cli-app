@@ -193,9 +193,6 @@ def borrow_book(book_id, username):
     q1 = cur.fetchone()
     if q1 is None:
         typer.echo(f"Sorry, user name or book id is incorrect!")
-        cur.close()
-        conn.commit()
-        return
 
     else:
         postgres_select_query = f"""select quantity from books where  book_id = '{book_id}' """
